@@ -1949,39 +1949,97 @@ function requireVoiceChannel() {
 
 async function startVideoCall() {
     if (!requireVoiceChannel()) return;
+    
+    const isCameraOn = voiceOutgoingStream && voiceOutgoingStream.getVideoTracks().length > 0;
+    const btn = document.getElementById('voice-camera-button');
+    
     try {
-        // Chỉ xin video — audio đã có từ stream mic khi join kênh
-        const videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        const videoTrack = videoStream.getVideoTracks()[0];
-
-        // Ghép video track vào audio stream hiện có (nếu có), hoặc dùng riêng
-        let combined;
-        if (voiceOutgoingStream) {
-            const audioTracks = voiceOutgoingStream.getAudioTracks();
-            combined = new MediaStream([...audioTracks, videoTrack]);
+        if (isCameraOn) {
+            // TẮT CAMERA
+            // Xin lại luồng chỉ có mic
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+            
+            const localVideo = document.getElementById('voice-local-video');
+            localVideo.srcObject = null;
+            localVideo.classList.add('hidden');
+            
+            await publishVoiceStream(micStream, 'Đã kết nối');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-video-slash text-[#ed4245]"></i>';
+            showToast('Đã tắt camera.', 'info');
         } else {
-            combined = videoStream;
+            // BẬT CAMERA
+            const videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const videoTrack = videoStream.getVideoTracks()[0];
+            
+            // Lấy lại mic track an toàn
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            const combined = new MediaStream([...micStream.getAudioTracks(), videoTrack]);
+            combined.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+            
+            const localVideo = document.getElementById('voice-local-video');
+            localVideo.srcObject = combined;
+            localVideo.classList.remove('hidden');
+            
+            await publishVoiceStream(combined, 'Camera đang bật');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-video"></i>';
         }
-
-        // Hiện local video preview
-        const localVideo = document.getElementById('voice-local-video');
-        localVideo.srcObject = combined;
-        localVideo.classList.remove('hidden');
-
-        await publishVoiceStream(combined, 'Camera đang bật');
     } catch (e) {
         console.error('startVideoCall:', e);
-        showToast('Không thể truy cập camera. Hãy cấp quyền camera cho trình duyệt.', 'error');
+        showToast('Không thể truy cập thiết bị. Hãy cấp quyền camera/mic.', 'error');
     }
 }
 async function startScreenShare() {
     if (!requireVoiceChannel()) return;
+    
+    // Kiểm tra nếu đang share màn hình thì tắt (dựa trên class của stream hoặc nút)
+    const isSharing = screenFrameTimer !== null; // Đang có timer gửi frame tức là đang share
+    const btn = document.getElementById('voice-share-button');
+
     try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        await publishVoiceStream(stream, 'Đang chia sẻ màn hình');
-        startScreenFrameRelay(stream);
-        stream.getVideoTracks()[0]?.addEventListener('ended', endCall, { once: true });
-    } catch { showToast('Bạn chưa chọn màn hình để chia sẻ.', 'error'); }
+        if (isSharing) {
+            // TẮT CHIA SẺ
+            stopScreenFrameRelay();
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+            
+            await publishVoiceStream(micStream, 'Đã kết nối');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-display"></i>';
+            showToast('Đã dừng chia sẻ màn hình.', 'info');
+        } else {
+            // BẬT CHIA SẺ
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            
+            // Lấy lại mic để mix vào cùng stream (nếu hệ thống không share audio)
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+            
+            // Gộp audio của mic và (nếu có) audio của screen share
+            const allAudio = [...stream.getAudioTracks(), ...micStream.getAudioTracks()];
+            const combined = new MediaStream([...stream.getVideoTracks(), ...allAudio]);
+            
+            const localVideo = document.getElementById('voice-local-video');
+            localVideo.srcObject = combined;
+            // Không gỡ hidden vì showVoiceMedia sẽ hiển thị trên grid
+
+            await publishVoiceStream(combined, 'Đang chia sẻ màn hình');
+            startScreenFrameRelay(combined);
+            
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-desktop text-[#ed4245]"></i>';
+            
+            // Xử lý khi người dùng nhấn "Stop Sharing" từ thanh thông báo của trình duyệt
+            combined.getVideoTracks()[0]?.addEventListener('ended', async () => {
+                stopScreenFrameRelay();
+                const newMic = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                newMic.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+                await publishVoiceStream(newMic, 'Đã kết nối');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-display"></i>';
+                showToast('Đã dừng chia sẻ màn hình.', 'info');
+            }, { once: true });
+        }
+    } catch { 
+        showToast('Đã huỷ chia sẻ màn hình.', 'error'); 
+    }
 }
 function startScreenFrameRelay(stream) {
     if (screenFrameTimer) clearInterval(screenFrameTimer);
