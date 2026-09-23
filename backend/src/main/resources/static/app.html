@@ -1715,6 +1715,10 @@ function remoteTile(channelId, uid, stream) {
     container.classList.remove('hidden');
     document.querySelector('.voice-room__activity')?.classList.add('hidden');
     document.getElementById('voice-room-empty')?.classList.add('hidden');
+    
+    // Ẩn avatar grid tĩnh khi có video đang phát
+    document.getElementById('voice-participants')?.classList.add('hidden');
+    
     document.getElementById('voice-room-status').textContent = 'Đang xem camera';
 }
 
@@ -1724,6 +1728,8 @@ function removeRemoteTile(uid) {
     tile?.remove();
     if (container && !container.children.length) {
         container.classList.add('hidden');
+        // Hiển thị lại avatar grid tĩnh
+        document.getElementById('voice-participants')?.classList.remove('hidden');
         document.querySelector('.voice-room__activity')?.classList.remove('hidden');
         renderVoiceActivity(voiceParticipants[activeVoiceChannel?.id] || []);
     }
@@ -1732,6 +1738,8 @@ function removeRemoteTile(uid) {
 function clearRemoteTiles() {
     const container = document.getElementById('voice-remote-media');
     if (container) { container.replaceChildren(); container.classList.add('hidden'); }
+    // Hiển thị lại avatar grid tĩnh
+    document.getElementById('voice-participants')?.classList.remove('hidden');
     document.querySelector('.voice-room__activity')?.classList.remove('hidden');
 }
 
@@ -1944,7 +1952,12 @@ async function handleVoiceSignal(channelId, signal) {
             await flushVoiceCandidates(channelId, signal.fromUid, peer);
             // Thêm local stream của mình vào để gửi ngược lại (bidirectional)
             if (voiceOutgoingStream) {
-                voiceOutgoingStream.getTracks().forEach(track => peer.addTrack(track, voiceOutgoingStream));
+                const senders = peer.getSenders();
+                voiceOutgoingStream.getTracks().forEach(track => {
+                    if (!senders.find(s => s.track === track)) {
+                        try { peer.addTrack(track, voiceOutgoingStream); } catch(e) {}
+                    }
+                });
             }
             const answer = await peer.createAnswer(); await peer.setLocalDescription(answer);
             sendVoiceSignal(channelId, {type:'answer', targetUid:signal.fromUid, description:answer});
@@ -1961,7 +1974,10 @@ async function handleVoiceSignal(channelId, signal) {
             const screen = document.getElementById('voice-remote-screen'); screen.src=''; screen.classList.add('hidden');
             renderVoiceParticipants(voiceParticipants[channelId] || []);
         }
-    } catch (error) { console.error('Voice WebRTC signaling error:', error); showToast('Không thể kết nối màn hình chia sẻ.', 'error'); }
+    } catch (error) { 
+        console.error('Voice WebRTC signaling error:', error); 
+        showToast('Lỗi WebRTC: ' + error.message, 'error'); 
+    }
 }
 function showVoiceMedia(stream, status) {
     const video = document.getElementById('voice-local-video');
