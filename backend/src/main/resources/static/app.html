@@ -605,7 +605,7 @@ let ICE_SERVERS = [
 // Fetch TURN credentials từ Metered (miễn phí 20GB/tháng)
 async function fetchTurnCredentials() {
     try {
-        const response = await fetch('https://squadcast.metered.live/api/v1/turn/credentials?apiKey=c02fa23a64e3a076f7e9ac2e00bca3ed74b0');
+        const response = await fetch('https://callingroom.metered.live/api/v1/turn/credentials?apiKey=6ab3929de375ebd475244937');
         if (response.ok) {
             const servers = await response.json();
             ICE_SERVERS = [...ICE_SERVERS, ...servers];
