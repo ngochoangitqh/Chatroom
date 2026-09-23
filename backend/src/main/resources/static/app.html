@@ -2027,8 +2027,6 @@ function showVoiceMedia(stream, status) {
     video.srcObject = stream;
     video.classList.add('voice-room__video--local');
     video.classList.remove('hidden');
-    document.getElementById('voice-room-empty').classList.add('hidden');
-    document.getElementById('voice-participants').classList.add('hidden');
     document.getElementById('voice-room-status').textContent = status;
 }
 function endCall() {
