@@ -905,6 +905,9 @@ function endDirectCall(notify) {
     document.getElementById('voice-remote-video').srcObject=null; document.getElementById('voice-remote-video').classList.add('hidden');
     document.getElementById('voice-share-button').classList.remove('hidden');
     document.getElementById('voice-camera-button').classList.remove('hidden');
+    document.getElementById('voice-room-view').classList.add('hidden');
+    // Reset nút rời kênh về mặc định
+    document.getElementById('voice-leave-button').onclick = () => leaveVoiceChannel();
     if (currentDmFriend) openDirectMessage(currentDmFriend.uid);
 }
 async function openDirectMessage(uid) {
@@ -1942,7 +1945,8 @@ async function handleVoiceSignal(channelId, signal) {
 }
 function showVoiceMedia(stream, status) {
     const video = document.getElementById('voice-local-video');
-    video.classList.remove('voice-room__video--local'); video.srcObject = stream;
+    video.srcObject = stream;
+    video.classList.add('voice-room__video--local');
     video.classList.remove('hidden');
     document.getElementById('voice-room-empty').classList.add('hidden');
     document.getElementById('voice-participants').classList.add('hidden');
@@ -1973,6 +1977,11 @@ function stopVoiceBroadcast(notify) {
     if (notify && channelId) sendVoiceSignal(channelId, {type:'stop'});
 }
 function leaveVoiceChannel() {
+    // Nếu đang trong direct call → xử lý direct call
+    if (directCall) {
+        endDirectCall(true);
+        return;
+    }
     const channelId = activeVoiceChannel?.id;
     if (channelId && stompClient?.connected) {
         stompClient.send('/app/voice.leave/' + channelId, {}, JSON.stringify({ uid: currentUser.uid }));
@@ -1995,6 +2004,8 @@ function leaveVoiceChannel() {
     document.getElementById('user-voice-status').textContent = 'Online';
     document.getElementById('voice-room-view').classList.add('hidden');
     document.getElementById('no-channel-placeholder').classList.remove('hidden');
+    // Reset nút rời kênh về mặc định
+    document.getElementById('voice-leave-button').onclick = () => leaveVoiceChannel();
     showToast('Đã rời kênh thoại.', 'success');
 }
 
