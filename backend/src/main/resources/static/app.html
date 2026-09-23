@@ -1963,7 +1963,14 @@ async function handleVoiceSignal(channelId, signal) {
             sendVoiceSignal(channelId, {type:'answer', targetUid:signal.fromUid, description:answer});
         } else if (signal.type === 'answer') {
             const peer = voicePeers[channelId]?.[signal.fromUid];
-            if (peer) { await peer.setRemoteDescription(new RTCSessionDescription(signal.description)); await flushVoiceCandidates(channelId, signal.fromUid, peer); }
+            if (peer) {
+                if (peer.signalingState === 'have-local-offer') {
+                    await peer.setRemoteDescription(new RTCSessionDescription(signal.description));
+                    await flushVoiceCandidates(channelId, signal.fromUid, peer);
+                } else {
+                    console.warn('[WebRTC] Bỏ qua answer do sai trạng thái (stale signal):', peer.signalingState);
+                }
+            }
         } else if (signal.type === 'ice') {
             const peer = voicePeers[channelId]?.[signal.fromUid];
             if (!signal.candidate) return;
