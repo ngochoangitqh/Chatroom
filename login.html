@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceHub - Đăng nhập</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* === Animated Background === */
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(1deg); }
+            66% { transform: translate(-20px, 20px) rotate(-1deg); }
+        }
+
+        /* === Floating Circles === */
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.05;
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .floating-circle:nth-child(1) { width: 300px; height: 300px; background: #6366f1; top: 10%; left: 10%; animation-delay: 0s; }
+        .floating-circle:nth-child(2) { width: 200px; height: 200px; background: #8b5cf6; top: 60%; right: 10%; animation-delay: -5s; }
+        .floating-circle:nth-child(3) { width: 150px; height: 150px; background: #3b82f6; bottom: 10%; left: 30%; animation-delay: -10s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-40px) scale(1.05); }
+        }
+
+        /* === Login Card === */
+        .login-card {
+            position: relative;
+            z-index: 10;
+            background: rgba(30, 31, 48, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 40px;
+            width: 420px;
+            max-width: 95vw;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5),
+                        0 0 0 1px rgba(255, 255, 255, 0.05);
+            animation: cardAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes cardAppear {
+            0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* === Form Elements === */
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #b5bac1;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            padding-left: 44px;
+            background: #1e1f2e;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: #dcddde;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .input-group input::placeholder { color: #72767d; }
+
+        .input-group input:focus {
+            border-color: #5865f2;
+            box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2);
+        }
+
+        .input-group .input-icon {
+            position: absolute;
+            left: 14px;
+            bottom: 14px;
+            color: #72767d;
+            font-size: 16px;
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+
+        .input-group input:focus ~ .input-icon { color: #5865f2; }
+
+        /* === Password Toggle === */
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+            color: #72767d;
+            cursor: pointer;
+            font-size: 16px;
+            transition: color 0.2s;
+        }
+        .password-toggle:hover { color: #dcddde; }
+
+        /* === Submit Button === */
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #5865f2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit:hover { background: #4752c4; }
+        .btn-submit:active { transform: scale(0.98); }
+
+        .btn-submit.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-submit .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        .btn-submit.loading .btn-text { display: none; }
+        .btn-submit.loading .spinner { display: inline-block; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* === Social Login === */
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: #72767d;
+            font-size: 12px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .divider span { padding: 0 12px; }
+
+        .social-btns {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: #dcddde;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .social-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* === Toggle mode === */
+        .toggle-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #b5bac1;
+            font-size: 13px;
+        }
+
+        .toggle-text a {
+            color: #00aff4;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .toggle-text a:hover { text-decoration: underline; }
+
+        /* === Notification Toast === */
+        .toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 100;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #23a55a; }
+        .toast.error { background: #da373c; }
+    </style>
+</head>
+<body>
+
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-msg">Thông báo</span>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card" id="login-card">
+        <!-- Logo -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/20 mb-4">
+                <i class="fa-solid fa-headset text-3xl text-indigo-400"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold text-white" id="form-title">Chào mừng trở lại!</h1>
+            <p class="text-sm text-slate-400 mt-1" id="form-subtitle">Rất vui được gặp lại bạn!</p>
+        </div>
+
+        <form id="auth-form" onsubmit="handleSubmit(event)">
+            <!-- Username (chỉ hiện khi Đăng ký) -->
+            <div class="input-group hidden" id="username-group">
+                <label for="username">Tên hiển thị</label>
+                <input type="text" id="username" placeholder="VD: Minh Anh" autocomplete="off">
+                <i class="fa-solid fa-user input-icon"></i>
+            </div>
+
+            <!-- Email -->
+            <div class="input-group">
+                <label for="email">Email hoặc số điện thoại</label>
+                <input type="text" id="email" placeholder="VD: ban@email.com" autocomplete="off" required>
+                <i class="fa-solid fa-envelope input-icon"></i>
+            </div>
+
+            <!-- Password -->
+            <div class="input-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+                <i class="fa-solid fa-lock input-icon"></i>
+                <i class="fa-solid fa-eye password-toggle" id="toggle-password" onclick="togglePassword()"></i>
+            </div>
+
+            <!-- Confirm Password (chỉ hiện khi Đăng ký) -->
+            <div class="input-group hidden" id="confirm-group">
+                <label for="confirm-password">Nhập lại mật khẩu</label>
+                <input type="password" id="confirm-password" placeholder="••••••••">
+                <i class="fa-solid fa-shield-halved input-icon"></i>
+            </div>
+
+            <!-- Quên mật khẩu (chỉ hiện khi Đăng nhập) -->
+            <div class="mb-5" id="forgot-link">
+                <a href="#" class="text-xs text-sky-400 hover:underline font-medium">Quên mật khẩu?</a>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-submit" id="btn-submit">
+                <span class="btn-text">Đăng nhập</span>
+                <div class="spinner"></div>
+            </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="divider"><span>hoặc tiếp tục với</span></div>
+
+        <!-- Social Login -->
+        <div class="social-btns">
+            <button class="social-btn" title="Google" onclick="socialLogin('Google')">
+                <i class="fa-brands fa-google"></i>
+            </button>
+            <button class="social-btn" title="GitHub" onclick="socialLogin('GitHub')">
+                <i class="fa-brands fa-github"></i>
+            </button>
+            <button class="social-btn" title="Facebook" onclick="socialLogin('Facebook')">
+                <i class="fa-brands fa-facebook-f"></i>
+            </button>
+        </div>
+
+        <!-- Toggle Đăng nhập / Đăng ký -->
+        <div class="toggle-text">
+            <span id="toggle-question">Chưa có tài khoản?</span>
+            <a id="toggle-link" onclick="toggleMode()">Đăng ký ngay</a>
+        </div>
+    </div>
+
+    <!-- Firebase App & Auth SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signInWithPopup, 
+            GoogleAuthProvider,
+            updateProfile,
+            sendPasswordResetEmail
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Cấu hình Firebase project callingroom của bạn
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvrYLZ0ANKKnz-wdFD-zMHuDOQorcX2C4",
+            authDomain: "callingroom.firebaseapp.com",
+            projectId: "callingroom",
+            storageBucket: "callingroom.firebasestorage.app",
+            messagingSenderId: "659328274542",
+            appId: "1:659328274542:web:4434759044ada81fa1d67f",
+            measurementId: "G-FH53LV0PQD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // === State ===
+        let isLoginMode = true;
+
+        // === Toggle Password Visibility ===
+        window.togglePassword = function() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('toggle-password');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        };
+
+        // === Toggle Login / Register Mode ===
+        window.toggleMode = function() {
+            isLoginMode = !isLoginMode;
+            const card = document.getElementById('login-card');
+
+            card.style.animation = 'none';
+            card.offsetHeight; // Trigger reflow
+            card.style.animation = 'cardAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+
+            if (isLoginMode) {
+                document.getElementById('form-title').textContent = 'Chào mừng trở lại!';
+                document.getElementById('form-subtitle').textContent = 'Rất vui được gặp lại bạn!';
+                document.getElementById('username-group').classList.add('hidden');
+                document.getElementById('confirm-group').classList.add('hidden');
+                document.getElementById('forgot-link').classList.remove('hidden');
+                document.querySelector('.btn-text').textContent = 'Đăng nhập';
+                document.getElementById('toggle-question').textContent = 'Chưa có tài khoản?';
+                document.getElementById('toggle-link').textContent = 'Đăng ký ngay';
+            } else {
+                document.getElementById('form-title').textContent = 'Tạo tài khoản';
+                document.getElementById('form-subtitle').textContent = 'Tham gia cùng chúng tôi nào!';
+                document.getElementById('username-group').classList.remove('hidden');
+                document.getElementById('confirm-group').classList.remove('hidden');
+                document.getElementById('forgot-link').classList.add('hidden');
+                document.querySelector('.btn-text').textContent = 'Đăng ký';
+                document.getElementById('toggle-question').textContent = 'Đã có tài khoản?';
+                document.getElementById('toggle-link').textContent = 'Đăng nhập';
+            }
+        };
+
+        // === Show Toast ===
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+            document.getElementById('toast-msg').textContent = message;
+
+            toast.className = `toast ${type}`;
+            icon.className = type === 'success' 
+                ? 'fa-solid fa-circle-check' 
+                : 'fa-solid fa-circle-xmark';
+
+            setTimeout(() => toast.classList.add('show'), 50);
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        // Firebase Error Messages tiếng Việt
+        function getFirebaseErrorMessage(code) {
+            const messages = {
+                'auth/user-not-found': 'Không tìm thấy tài khoản với email này!',
+                'auth/wrong-password': 'Mật khẩu không chính xác!',
+                'auth/invalid-credential': 'Email hoặc mật khẩu không chính xác!',
+                'auth/email-already-in-use': 'Email này đã được đăng ký tài khoản!',
+                'auth/weak-password': 'Mật khẩu phải có ít nhất 6 ký tự!',
+                'auth/invalid-email': 'Định dạng email không hợp lệ!',
+                'auth/popup-closed-by-user': 'Đăng nhập bị huỷ bỏ.',
+                'auth/too-many-requests': 'Quá nhiều lần thử thất bại. Vui lòng thử lại sau!',
+                'auth/network-request-failed': 'Lỗi kết nối mạng, vui lòng kiểm tra lại internet!',
+                'auth/operation-not-allowed': 'Phương thức đăng nhập này chưa được kích hoạt trên Firebase Console!'
+            };
+            return messages[code] || ('Lỗi đăng nhập: ' + code);
+        }
+
+        // === Handle Submit (Firebase Auth) ===
+        window.handleSubmit = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit');
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showToast('Vui lòng điền đầy đủ thông tin!', 'error');
+                return;
+            }
+
+            if (!isLoginMode) {
+                const username = document.getElementById('username').value.trim();
+                const confirm = document.getElementById('confirm-password').value;
+                if (!username) {
+                    showToast('Vui lòng nhập tên hiển thị!', 'error');
+                    return;
+                }
+                if (password !== confirm) {
+                    showToast('Mật khẩu nhập lại không khớp!', 'error');
+                    return;
+                }
+                if (password.length < 6) {
+                    showToast('Mật khẩu phải có ít nhất 6 ký tự!', 'error');
+                    return;
+                }
+            }
+
+            btn.classList.add('loading');
+
+            try {
+                if (isLoginMode) {
+                    // Đăng nhập Firebase
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    btn.classList.remove('loading');
+
+                    // Lưu session vào localStorage để app.html dùng
+                    localStorage.setItem('voicehub_user', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        username: user.displayName || user.email.split('@')[0],
+                        photoURL: user.photoURL || '',
+                        loggedInAt: new Date().toISOString()
+                    }));
+
+                    showToast('Đăng nhập thành công! Đang chuyển hướng...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 800);
+                } else {
+                    // Đăng ký Firebase
+                    const username = document.getElementById('username').value.trim();
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    
+                    // Cập nhật display name
+                    await updateProfile(user, { displayName: username });
+
+                    btn.classList.remove('loading');
+                    showToast('Đăng ký tài khoản thành công!', 'success');
+
+                    // Tự động lưu và vào app luôn
+                    localStorage.setItem('voicehub_user', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        username: username,
+                        photoURL: user.photoURL || '',
+                        loggedInAt: new Date().toISOString()
+                    }));
+
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 1000);
+                }
+            } catch (err) {
+                btn.classList.remove('loading');
+                console.error(err);
+                showToast(getFirebaseErrorMessage(err.code), 'error');
+            }
+        };
+
+        // === Quên mật khẩu ===
+        document.querySelector('#forgot-link a')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            if (!email) {
+                showToast('Vui lòng nhập email vào ô trước để gửi link khôi phục!', 'error');
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showToast('Đã gửi email đặt lại mật khẩu! Vui lòng kiểm tra hộp thư.', 'success');
+            } catch (err) {
+                showToast(getFirebaseErrorMessage(err.code), 'error');
+            }
+        });
+
+        // === Social Login (Google) ===
+        window.socialLogin = async function(provider) {
+            if (provider === 'Google') {
+                try {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    const user = result.user;
+
+                    localStorage.setItem('voicehub_user', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        username: user.displayName || user.email.split('@')[0],
+                        photoURL: user.photoURL || '',
+                        loggedInAt: new Date().toISOString()
+                    }));
+
+                    showToast('Đăng nhập Google thành công! Đang chuyển hướng...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 800);
+                } catch (err) {
+                    console.error(err);
+                    showToast(getFirebaseErrorMessage(err.code), 'error');
+                }
+            } else {
+                showToast(`Tính năng đăng nhập qua ${provider} đang được hoàn thiện!`, 'error');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+﻿.m2/
+tools/
+backend/target/
+.vscode/
+.hallmark/
+*.log
+.DS_Store
