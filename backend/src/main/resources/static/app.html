@@ -75,13 +75,15 @@
         .voice-room__empty { align-self:center; justify-self:center; text-align:center; color:var(--color-muted); max-width:34ch; }
         .voice-room__empty i { display:grid; place-items:center; width:4rem; height:4rem; margin:0 auto var(--space-md); border:1px solid var(--color-rule); border-radius:50%; color:var(--color-accent); }
         .voice-participants { flex:1; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; align-content:center; gap:var(--space-md); min-width:0; min-height:0; padding:var(--space-md); height:100%; }
-        .voice-participant { aspect-ratio:16/9; max-height:100%; max-width:100%; flex:1 1 320px; display:flex; align-items:center; justify-content:center; background:#111214; border-radius:8px; position:relative; overflow:hidden; }
+        .voice-participant { aspect-ratio:16/9; max-height:100%; max-width:100%; flex:1 1 320px; display:flex; align-items:center; justify-content:center; background:#111214; border-radius:8px; position:relative; overflow:hidden; border:3px solid transparent; }
         .voice-participant__avatar { display:flex; align-items:center; justify-content:center; width:80px; height:80px; border-radius:50%; overflow:hidden; font-weight:700; font-size:2rem; line-height:1; color:#fff; background:var(--color-paper-3); z-index:1; }
         .voice-participant__avatar img { width:100%; height:100%; object-fit:cover; }
         .voice-participant__name { position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.6); color:#fff; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:600; z-index:2; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .voice-participant__video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; border-radius:inherit; }
         .voice-room__video, .voice-room__screen { flex:1; width:100%; height:100%; max-height:none; min-height:0; aspect-ratio:auto; object-fit:contain; background:var(--color-paper-3); border:1px solid var(--color-rule); border-radius:var(--radius-md); }
         .voice-room__video--local { position:absolute; right:calc(33% + var(--space-md)); bottom:calc(var(--space-2xl) + var(--space-xl)); width:clamp(7rem,14vw,12rem); height:auto; max-height:10rem; z-index:3; }
+        .voice-participant.speaking { border:3px solid #23a559; box-shadow:0 0 15px rgba(35, 165, 89, 0.4), 0 8px 16px rgba(0,0,0,0.4); transform:scale(1.03); z-index:10; }
+        .voice-participant { transition:transform 0.1s ease-out, box-shadow 0.1s ease-out, border 0.1s ease-out; }
         .voice-remote-media { display:none; }
         .voice-remote-tile { display:none; }
         .voice-remote-tile video { display:none; }
@@ -1726,10 +1728,76 @@ function renderVoiceActivity(participants) {
     }
 }
 
+const audioMonitors = {};
+function monitorAudioStream(uid, stream) {
+    if (audioMonitors[uid]) {
+        cancelAnimationFrame(audioMonitors[uid].animation);
+        if (audioMonitors[uid].context.state !== 'closed') {
+            audioMonitors[uid].context.close().catch(()=>{});
+        }
+        delete audioMonitors[uid];
+    }
+    
+    // Nếu không có track âm thanh thì huỷ class speaking
+    if (!stream || stream.getAudioTracks().length === 0) {
+        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}"]`);
+        if (card) card.classList.remove('speaking');
+        return;
+    }
+
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.5;
+        
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser); // Không connect ra destination để tránh vọng âm (echo) cho remote stream
+        
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
+        const update = () => {
+            const currentCard = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}"]`);
+            if (!currentCard) {
+                // Thẻ đã bị xoá khỏi DOM -> dọn dẹp bộ nhớ
+                audioCtx.close().catch(()=>{});
+                delete audioMonitors[uid];
+                return;
+            }
+            
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+            const avg = sum / dataArray.length;
+            
+            // Ngưỡng phát hiện giọng nói (tuỳ chỉnh)
+            if (avg > 10) {
+                currentCard.classList.add('speaking');
+            } else {
+                currentCard.classList.remove('speaking');
+            }
+            
+            if (audioMonitors[uid]) {
+                audioMonitors[uid].animation = requestAnimationFrame(update);
+            }
+        };
+        
+        audioMonitors[uid] = {
+            context: audioCtx,
+            animation: requestAnimationFrame(update)
+        };
+    } catch (e) {
+        console.warn("Audio monitoring not supported or blocked by browser:", e);
+    }
+}
+
 function remoteTile(channelId, uid, stream) {
     const hasVideo = stream.getVideoTracks().length > 0;
     const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}"]`);
     if (!card) return;
+    
+    // Luôn giám sát âm thanh nếu có track audio
+    monitorAudioStream(uid, stream);
     
     if (!hasVideo) {
         // Chỉ có audio
@@ -1763,6 +1831,13 @@ function remoteTile(channelId, uid, stream) {
 }
 
 function removeRemoteTile(uid) {
+    if (audioMonitors[uid]) {
+        cancelAnimationFrame(audioMonitors[uid].animation);
+        if (audioMonitors[uid].context.state !== 'closed') {
+            audioMonitors[uid].context.close().catch(()=>{});
+        }
+        delete audioMonitors[uid];
+    }
     const oldAudio = document.getElementById('audio-remote-' + uid);
     if (oldAudio) oldAudio.remove();
     
@@ -1849,6 +1924,7 @@ async function joinVoiceChannel(channel) {
         voiceOutgoingStream = micStream;
         // Áp dụng trạng thái mute hiện tại
         micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+        monitorAudioStream(currentUser.uid, micStream);
         document.getElementById('voice-room-status').textContent = 'Đã kết nối';
         // Gửi audio stream đến những ai đang có mặt trong kênh
         const audience = voiceParticipants[channel.id] || [];
@@ -1971,6 +2047,7 @@ async function offerVoiceStream(channelId, targetUid) {
 async function publishVoiceStream(stream, status) {
     stopVoiceBroadcast(false);
     voiceOutgoingStream = stream;
+    monitorAudioStream(currentUser.uid, stream);
     showVoiceMedia(stream, status);
     const audience = voiceParticipants[activeVoiceChannel.id] || [];
     await Promise.all(audience.filter(member => member.uid !== currentUser.uid).map(member => offerVoiceStream(activeVoiceChannel.id, member.uid)));
@@ -2057,6 +2134,18 @@ function stopVoiceBroadcast(notify) {
     if (voiceOutgoingStream) voiceOutgoingStream.getTracks().forEach(track => track.stop());
     stopScreenFrameRelay();
     voiceOutgoingStream = null;
+    
+    // Dọn dẹp monitor âm thanh của mình
+    if (audioMonitors[currentUser.uid]) {
+        cancelAnimationFrame(audioMonitors[currentUser.uid].animation);
+        if (audioMonitors[currentUser.uid].context.state !== 'closed') {
+            audioMonitors[currentUser.uid].context.close().catch(()=>{});
+        }
+        delete audioMonitors[currentUser.uid];
+        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${currentUser.uid}"]`);
+        if (card) card.classList.remove('speaking');
+    }
+    
     Object.values(voicePeers[channelId] || {}).forEach(peer => peer.close());
     if (channelId) voicePeers[channelId] = {};
     if (channelId) Object.keys(pendingVoiceCandidates).filter(key => key.startsWith(channelId + ':')).forEach(key => delete pendingVoiceCandidates[key]);
