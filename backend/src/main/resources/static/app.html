@@ -600,14 +600,35 @@ let ICE_SERVERS = [
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
-    // Netzfabrik free TURN (community, no signup)
-    { urls: 'turn:turn.cloudflare.com:3478?transport=udp', username: '', credential: '' },
-    { urls: 'turn:relay1.expressturn.com:443', username: 'ef4JUCOYPHWDQHZTQS', credential: 'VOx24LCaV3VDABqa' },
-    // Fallback: openrelay (may still work for some regions)
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
 ];
+
+// Fetch TURN credentials từ Metered (miễn phí 20GB/tháng)
+async function fetchTurnCredentials() {
+    try {
+        const response = await fetch('https://squadcast.metered.live/api/v1/turn/credentials?apiKey=c02fa23a64e3a076f7e9ac2e00bca3ed74b0');
+        if (response.ok) {
+            const servers = await response.json();
+            ICE_SERVERS = [...ICE_SERVERS, ...servers];
+            console.log('[TURN] Loaded', servers.length, 'TURN servers from Metered API');
+        } else {
+            console.warn('[TURN] Metered API returned', response.status, '- using STUN only');
+            // Fallback static TURN
+            ICE_SERVERS.push(
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+            );
+        }
+    } catch (e) {
+        console.warn('[TURN] Failed to fetch TURN credentials:', e);
+        ICE_SERVERS.push(
+            { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+        );
+    }
+}
+fetchTurnCredentials();
 
 // ═══════════════════════════════════════════════════════
 //  HELPERS
@@ -1660,6 +1681,8 @@ function renderVoiceActivity(participants) {
     const heading = activity.querySelector('h3');
     const description = activity.querySelector('p');
     if (!guests.length) {
+        // Không có ai khác → hiện panel "Mời bạn vào phòng"
+        activity.classList.remove('hidden');
         mark.className = 'fa-solid fa-user-group voice-room__activity-mark';
         mark.removeAttribute('style');
         mark.replaceChildren();
@@ -1667,11 +1690,8 @@ function renderVoiceActivity(participants) {
         description.textContent = 'Khi có người tham gia, ảnh đại diện hoặc camera của họ sẽ hiện tại đây.';
         return;
     }
-    const guest = guests[0];
-    mark.className = 'voice-room__activity-mark';
-    makeAvatar(mark, guest);
-    heading.textContent = guest.displayName || 'Thành viên đang tham gia';
-    description.textContent = guests.length > 1 ? `${guests.length} người đang trong kênh thoại.` : 'Đang chờ bạn bật camera hoặc chia sẻ màn hình.';
+    // Có người khác → ẩn activity panel (avatar đã hiện ở participant grid rồi)
+    activity.classList.add('hidden');
 }
 
 function remoteTile(channelId, uid, stream) {
