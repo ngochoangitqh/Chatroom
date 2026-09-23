@@ -71,28 +71,29 @@
         .voice-room { flex:1; min-height:0; display:flex; flex-direction:column; padding:var(--space-md) clamp(1rem,3vw,2.5rem); gap:var(--space-md); background:var(--color-paper); }
         .voice-room__head { display:flex; align-items:center; justify-content:space-between; gap:var(--space-md); min-height:2.5rem; padding-inline:var(--space-xs); }
         .voice-room__title { font-size:1rem; font-weight:700; line-height:1; overflow-wrap:anywhere; min-width:0; }
-        .voice-room__stage { flex:1; min-height:22rem; display:grid; grid-template-columns:minmax(0,1.6fr) minmax(16rem,1fr); grid-template-rows:minmax(0,1fr); align-items:stretch; gap:var(--space-sm); position:relative; overflow:clip; padding:var(--space-sm) var(--space-sm) calc(var(--space-2xl) + var(--space-xl)); background:var(--color-paper); }
-        .voice-room__empty { grid-column:1; align-self:center; justify-self:center; text-align:center; color:var(--color-muted); max-width:34ch; }
+        .voice-room__stage { flex:1; min-height:22rem; display:flex; flex-direction:column; align-items:stretch; position:relative; overflow:clip; padding:var(--space-sm) var(--space-sm) calc(var(--space-2xl) + var(--space-xl)); background:var(--color-paper); }
+        .voice-room__empty { align-self:center; justify-self:center; text-align:center; color:var(--color-muted); max-width:34ch; }
         .voice-room__empty i { display:grid; place-items:center; width:4rem; height:4rem; margin:0 auto var(--space-md); border:1px solid var(--color-rule); border-radius:50%; color:var(--color-accent); }
-        .voice-participants { grid-column:1; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; align-content:center; gap:var(--space-md); min-width:0; min-height:0; padding:var(--space-md); }
+        .voice-participants { flex:1; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; align-content:center; gap:var(--space-md); min-width:0; min-height:0; padding:var(--space-md); }
         .voice-participant { flex:1 1 40%; min-width:280px; max-width:100%; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; background:#111214; border-radius:8px; position:relative; overflow:hidden; }
         .voice-participant__avatar { display:flex; align-items:center; justify-content:center; width:80px; height:80px; border-radius:50%; overflow:hidden; font-weight:700; font-size:2rem; line-height:1; color:#fff; background:var(--color-paper-3); z-index:1; }
         .voice-participant__avatar img { width:100%; height:100%; object-fit:cover; }
         .voice-participant__name { position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.6); color:#fff; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:600; z-index:2; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .voice-participant__video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; border-radius:inherit; }
-        .voice-room__video, .voice-room__screen { grid-column:1; width:100%; height:100%; max-height:none; min-height:0; aspect-ratio:auto; object-fit:contain; background:var(--color-paper-3); border:1px solid var(--color-rule); border-radius:var(--radius-md); }
+        .voice-room__video, .voice-room__screen { flex:1; width:100%; height:100%; max-height:none; min-height:0; aspect-ratio:auto; object-fit:contain; background:var(--color-paper-3); border:1px solid var(--color-rule); border-radius:var(--radius-md); }
         .voice-room__video--local { position:absolute; right:calc(33% + var(--space-md)); bottom:calc(var(--space-2xl) + var(--space-xl)); width:clamp(7rem,14vw,12rem); height:auto; max-height:10rem; z-index:3; }
-        .voice-remote-media { grid-column:2; display:grid; grid-template-columns:repeat(auto-fit,minmax(0,1fr)); grid-auto-rows:minmax(10rem,1fr); gap:var(--space-sm); min-width:0; min-height:0; }
-        .voice-remote-tile { position:relative; min-height:0; overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-md); background:var(--color-paper-3); }
-        .voice-remote-tile video { width:100%; height:100%; object-fit:cover; background:var(--color-paper-3); }
-        .voice-remote-tile__name { position:absolute; left:var(--space-xs); bottom:var(--space-xs); max-width:calc(100% - var(--space-md)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:var(--space-xs) var(--space-sm); border-radius:var(--radius-xs); background:var(--color-paper-2); color:var(--color-ink); font-size:.75rem; font-weight:600; }
-        .voice-room__activity { grid-column:2; min-width:0; min-height:14rem; display:grid; place-items:center; align-content:center; gap:var(--space-lg); padding:var(--space-lg); border:1px solid var(--color-rule); border-radius:var(--radius-md); background:var(--color-paper-3); color:var(--color-ink); text-align:center; }
-        .voice-room__activity-mark { display:grid; place-items:center; width:clamp(6rem,12vw,10rem); aspect-ratio:1; border:2px solid var(--color-accent); border-radius:50%; overflow:hidden; color:var(--color-accent); background:var(--color-paper-4); font-size:clamp(2rem,5vw,4rem); }
+        .voice-remote-media { display:none; }
+        .voice-remote-tile { display:none; }
+        .voice-remote-tile video { display:none; }
+        .voice-remote-tile__name { display:none; }
+        .voice-room__activity { flex:1 1 40%; min-width:280px; max-width:100%; aspect-ratio:16/9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-md); padding:var(--space-lg); border-radius:8px; background:#111214; text-align:center; margin:var(--space-md); }
+        .voice-room__activity-mark { display:grid; place-items:center; width:clamp(5rem,10vw,8rem); aspect-ratio:1; border-radius:50%; overflow:hidden; color:var(--color-accent); background:var(--color-paper-4); font-size:clamp(2rem,4vw,3.5rem); }
         .voice-room__activity-mark img { width:100%; height:100%; object-fit:cover; }
-        .voice-room__activity p { color:var(--color-muted); max-width:24ch; font-size:.875rem; line-height:1.5; }
-        .voice-room__activity-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-xs); }
-        .voice-room__activity-actions button { min-height:36px; padding-inline:var(--space-md); border:1px solid var(--color-rule); border-radius:var(--radius-sm); background:var(--color-paper-4); color:var(--color-ink); font-weight:600; white-space:nowrap; cursor:pointer; font-size:13px; transition:border-color var(--dur-micro), background var(--dur-micro); }
-        .voice-room__activity-actions button:hover { border-color:rgba(255,255,255,.15); background:var(--color-paper-3); }
+        .voice-room__activity h3 { color:#fff; font-size:16px; font-weight:700; margin:0; }
+        .voice-room__activity p { color:var(--color-muted); max-width:24ch; font-size:13px; line-height:1.5; margin:0; }
+        .voice-room__activity-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:8px; }
+        .voice-room__activity-actions button { min-height:36px; padding-inline:16px; border:none; border-radius:4px; font-weight:600; font-size:13px; display:flex; align-items:center; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; }
+        .voice-room__activity-actions button:hover { background:rgba(255,255,255,0.15); }
         .voice-room__controls { position:absolute; bottom:var(--space-lg); left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:var(--space-sm); width:max-content; max-width:calc(100% - 2rem); padding:var(--space-xs); background:var(--color-paper-2); border:1px solid var(--color-rule); border-radius:var(--radius-lg); }
         .voice-control-group { display:flex; align-items:center; gap:var(--space-xs); padding:var(--space-xs); background:var(--color-paper-3); border-radius:var(--radius-lg); }
         .voice-room__controls button { min-width:40px; min-height:40px; padding:0 var(--space-md); border:0; border-radius:var(--radius-sm); background:transparent; color:var(--color-ink); cursor:pointer; white-space:nowrap; font-size:13px; font-weight:500; transition:background-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out); }
@@ -1626,7 +1627,11 @@ function renderVoiceParticipants(participants) {
     const empty = document.getElementById('voice-room-empty');
     
     if (!list.length) {
-        container.replaceChildren();
+        [...container.children].forEach(card => {
+            if (!card.classList.contains('voice-room__activity')) {
+                card.remove();
+            }
+        });
         container.classList.add('hidden');
         empty.classList.remove('hidden');
         renderVoiceActivity([]);
@@ -1637,6 +1642,7 @@ function renderVoiceParticipants(participants) {
     
     // Xoá những thẻ không còn trong danh sách
     [...container.children].forEach(card => {
+        if (card.classList.contains('voice-room__activity')) return;
         if (!currentUids.has(card.dataset.uid)) {
             card.remove();
         }
@@ -1707,22 +1713,15 @@ function makeAvatar(element, participant) {
 function renderVoiceActivity(participants) {
     const activity = document.querySelector('.voice-room__activity');
     if (!activity) return;
-    const guests = (participants || []).filter(member => member.uid !== currentUser?.uid);
-    const mark = activity.querySelector('.voice-room__activity-mark');
-    const heading = activity.querySelector('h3');
-    const description = activity.querySelector('p');
-    if (!guests.length) {
-        // Không có ai khác → hiện panel "Mời bạn vào phòng"
-        activity.classList.remove('hidden');
-        mark.className = 'fa-solid fa-user-group voice-room__activity-mark';
-        mark.removeAttribute('style');
-        mark.replaceChildren();
-        heading.textContent = 'Mời bạn vào phòng';
-        description.textContent = 'Khi có người tham gia, ảnh đại diện hoặc camera của họ sẽ hiện tại đây.';
-        return;
+    
+    // Luôn hiển thị Activity Panel như 1 tile trong grid
+    activity.classList.remove('hidden');
+    
+    // Đưa activity panel vào trong voice-participants để flow cùng hàng
+    const container = document.getElementById('voice-participants');
+    if (container && activity.parentElement !== container) {
+        container.appendChild(activity);
     }
-    // Có người khác → ẩn activity panel (avatar đã hiện ở participant grid rồi)
-    activity.classList.add('hidden');
 }
 
 function remoteTile(channelId, uid, stream) {
