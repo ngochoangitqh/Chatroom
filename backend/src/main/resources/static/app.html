@@ -594,11 +594,18 @@ let directCall = null;
 
 const AVATAR_COLORS = ['#5865f2','#ed4245','#23a55a','#f0b232','#eb459e','#57f287','#fee75c','#9b59b6','#3498db','#e67e22'];
 const EMOJIS = ['😀','😂','🥰','😍','🤔','😎','🥳','😭','🙏','👍','👎','❤️','🔥','💯','🎉','✅','😅','🤣','😊','😇','😉','😋','🤩','🥺','👋','🤝','💪','🎯','🚀','💬','📞','🎮','😤','🤯','😱','😴','🤮','👀','💀','🤡','🍕','🍜','☕','🍺','🌙','🌈','⚡','🎵'];
-const ICE_SERVERS = [
+let ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'turn:openrelay.metered.ca:80',               username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443',              username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    // Netzfabrik free TURN (community, no signup)
+    { urls: 'turn:turn.cloudflare.com:3478?transport=udp', username: '', credential: '' },
+    { urls: 'turn:relay1.expressturn.com:443', username: 'ef4JUCOYPHWDQHZTQS', credential: 'VOx24LCaV3VDABqa' },
+    // Fallback: openrelay (may still work for some regions)
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
 ];
 
@@ -765,8 +772,23 @@ function subscribeDirectCalls(friend) {
 function createPeerConnection(friend) {
     const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peer.onicecandidate = event => { if (event.candidate) sendCallSignal(friend, {type:'ice', candidate:event.candidate.toJSON()}); };
-    peer.ontrack = event => { const remote = document.getElementById('voice-remote-video'); remote.srcObject = event.streams[0]; remote.classList.remove('hidden'); };
-    peer.onconnectionstatechange = () => { if (['failed','disconnected','closed'].includes(peer.connectionState)) endDirectCall(false); };
+    peer.ontrack = event => {
+        console.log('[DirectCall] ontrack received from', friend.displayName, event.streams);
+        const remote = document.getElementById('voice-remote-video');
+        remote.srcObject = event.streams[0];
+        remote.classList.remove('hidden');
+    };
+    peer.oniceconnectionstatechange = () => {
+        console.log('[DirectCall] ICE state:', peer.iceConnectionState, 'friend:', friend.displayName);
+        if (peer.iceConnectionState === 'failed') {
+            console.error('[DirectCall] ICE FAILED - TURN server not working');
+            showToast('Kết nối cuộc gọi thất bại. TURN server không hoạt động.', 'error');
+        }
+    };
+    peer.onconnectionstatechange = () => {
+        console.log('[DirectCall] Connection state:', peer.connectionState);
+        if (['failed','disconnected','closed'].includes(peer.connectionState)) endDirectCall(false);
+    };
     return peer;
 }
 function sendCallSignal(friend, signal) { if (stompClient?.connected) stompClient.send('/app/call.signal/' + directConversationKey(friend.uid), {}, JSON.stringify({...signal, fromUid:currentUser.uid, toUid:friend.uid})); }
@@ -1844,9 +1866,21 @@ function createVoicePeer(channelId, targetUid) {
     (voicePeers[channelId] ||= {})[targetUid] = peer;
     peer.onicecandidate = event => { if (event.candidate) sendVoiceSignal(channelId, {type:'ice', targetUid, candidate:event.candidate.toJSON()}); };
     peer.ontrack = event => {
+        console.log('[WebRTC] ontrack received from', targetUid, event.streams);
         remoteTile(channelId, targetUid, event.streams[0]);
     };
+    peer.oniceconnectionstatechange = () => {
+        console.log('[WebRTC] ICE state:', peer.iceConnectionState, 'target:', targetUid);
+        if (peer.iceConnectionState === 'failed') {
+            console.error('[WebRTC] ICE connection FAILED for', targetUid, '- TURN server may not be working');
+            showToast('Kết nối WebRTC thất bại. Kiểm tra mạng hoặc TURN server.', 'error');
+        }
+        if (peer.iceConnectionState === 'connected' || peer.iceConnectionState === 'completed') {
+            console.log('[WebRTC] Successfully connected to', targetUid);
+        }
+    };
     peer.onconnectionstatechange = () => {
+        console.log('[WebRTC] Connection state:', peer.connectionState, 'target:', targetUid);
         if (['failed','disconnected','closed'].includes(peer.connectionState)) {
             delete (voicePeers[channelId] || {})[targetUid];
             removeRemoteTile(targetUid);
