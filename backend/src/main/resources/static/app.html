@@ -1695,9 +1695,38 @@ function renderVoiceActivity(participants) {
 }
 
 function remoteTile(channelId, uid, stream) {
+    const hasVideo = stream.getVideoTracks().length > 0;
     const container = document.getElementById('voice-remote-media');
     if (!container) return;
+    
     let tile = [...container.children].find(item => item.dataset.uid === uid);
+    
+    if (!hasVideo) {
+        // Chỉ có audio -> Phát ngầm, không tạo tile hiển thị
+        if (tile) {
+            tile.remove();
+            if (!container.children.length) {
+                container.classList.add('hidden');
+                document.getElementById('voice-participants')?.classList.remove('hidden');
+                document.querySelector('.voice-room__activity')?.classList.remove('hidden');
+            }
+        }
+        let audioEl = document.getElementById('audio-remote-' + uid);
+        if (!audioEl) {
+            audioEl = document.createElement('audio');
+            audioEl.id = 'audio-remote-' + uid;
+            audioEl.autoplay = true;
+            audioEl.style.display = 'none';
+            document.body.appendChild(audioEl);
+        }
+        audioEl.srcObject = stream;
+        return;
+    }
+
+    // Nếu có video -> Hiển thị tile
+    const oldAudio = document.getElementById('audio-remote-' + uid);
+    if (oldAudio) oldAudio.remove();
+
     if (!tile) {
         tile = document.createElement('article');
         tile.className = 'voice-remote-tile';
@@ -1726,6 +1755,10 @@ function removeRemoteTile(uid) {
     const container = document.getElementById('voice-remote-media');
     const tile = container ? [...container.children].find(item => item.dataset.uid === uid) : null;
     tile?.remove();
+    
+    const oldAudio = document.getElementById('audio-remote-' + uid);
+    if (oldAudio) oldAudio.remove();
+
     if (container && !container.children.length) {
         container.classList.add('hidden');
         // Hiển thị lại avatar grid tĩnh
@@ -1738,6 +1771,9 @@ function removeRemoteTile(uid) {
 function clearRemoteTiles() {
     const container = document.getElementById('voice-remote-media');
     if (container) { container.replaceChildren(); container.classList.add('hidden'); }
+    
+    document.querySelectorAll('audio[id^="audio-remote-"]').forEach(el => el.remove());
+
     // Hiển thị lại avatar grid tĩnh
     document.getElementById('voice-participants')?.classList.remove('hidden');
     document.querySelector('.voice-room__activity')?.classList.remove('hidden');
