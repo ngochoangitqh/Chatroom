@@ -83,8 +83,15 @@
         .voice-room__video, .voice-room__screen { flex:1; width:100%; height:100%; max-height:none; min-height:0; aspect-ratio:auto; object-fit:contain; background:var(--color-paper-3); border:1px solid var(--color-rule); border-radius:var(--radius-md); }
         .voice-room__video--local { position:absolute; right:calc(33% + var(--space-md)); bottom:calc(var(--space-2xl) + var(--space-xl)); width:clamp(7rem,14vw,12rem); height:auto; max-height:10rem; z-index:3; }
         .voice-participant.speaking { border:3px solid #23a559; box-shadow:0 0 15px rgba(35, 165, 89, 0.4), 0 8px 16px rgba(0,0,0,0.4); transform:scale(1.03); z-index:10; }
-        .voice-participant { transition:transform 0.1s ease-out, box-shadow 0.1s ease-out, border 0.1s ease-out; }
+        .voice-participant { transition:transform 0.1s ease-out, box-shadow 0.1s ease-out, border 0.1s ease-out; cursor:pointer; }
         .voice-remote-media { display:none; }
+        
+        #voice-focus-area { display:none; width:100%; flex:1; background:#000; border-radius:8px; margin-bottom:12px; position:relative; overflow:hidden; min-height:0; }
+        #voice-focus-area.active { display:flex; align-items:center; justify-content:center; }
+        #voice-focus-video { width:100%; height:100%; object-fit:contain; }
+        .voice-participants.focused-row { flex:0 0 160px; overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; justify-content:flex-start; height:160px; padding:0 0 8px 0; }
+        .voice-participants.focused-row .voice-participant { flex:0 0 240px; height:100%; max-width:240px; }
+
         .voice-remote-tile { display:none; }
         .voice-remote-tile video { display:none; }
         .voice-remote-tile__name { display:none; }
@@ -501,6 +508,13 @@
                     <i class="fa-solid fa-headset text-2xl"></i>
                     <p class="font-semibold text-white mb-1">Bạn đang ở trong kênh thoại</p>
                     <p>Bật camera hoặc chia sẻ màn hình để mọi người trong phòng cùng xem.</p>
+                </div>
+                <div id="voice-focus-area">
+                    <video id="voice-focus-video" autoplay playsinline></video>
+                    <button id="voice-focus-close" class="icon-button" onclick="unfocusParticipant()" title="Thu nhỏ" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.6); color:white; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                        <i class="fa-solid fa-compress"></i>
+                    </button>
+                    <div id="voice-focus-name" style="position:absolute; bottom:16px; left:16px; background:rgba(0,0,0,0.6); color:white; padding:6px 12px; border-radius:8px; font-weight:600; font-size:14px; z-index:10;"></div>
                 </div>
                 <div class="voice-participants hidden" id="voice-participants" aria-live="polite"></div>
                 <video id="voice-remote-video" class="voice-room__video hidden" autoplay playsinline></video>
@@ -1656,6 +1670,7 @@ function renderVoiceParticipants(participants) {
             card = document.createElement('div');
             card.className = 'voice-participant';
             card.dataset.uid = participant.uid;
+            card.onclick = () => focusParticipant(participant.uid, participant.displayName);
             
             const video = document.createElement('video');
             video.className = 'voice-participant__video hidden';
@@ -1814,6 +1829,9 @@ function remoteTile(channelId, uid, stream) {
             document.body.appendChild(audioEl);
         }
         audioEl.srcObject = stream;
+        if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === uid) {
+            unfocusParticipant();
+        }
         return;
     }
 
@@ -1864,6 +1882,9 @@ function removeRemoteTile(uid) {
         const video = card.querySelector('.voice-participant__video');
         if (video) { video.srcObject = null; video.classList.add('hidden'); }
         card.querySelector('.voice-participant__avatar')?.classList.remove('hidden');
+    }
+    if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === uid) {
+        unfocusParticipant();
     }
 }
 
@@ -1964,6 +1985,43 @@ function requireVoiceChannel() {
     showToast('Hãy vào một kênh thoại trước khi gọi hoặc chia sẻ màn hình.', 'error');
     return false;
 }
+
+let currentFocusedUid = null;
+function focusParticipant(uid, name) {
+    let stream = null;
+    if (uid === currentUser.uid) {
+        stream = voiceOutgoingStream;
+    } else {
+        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}"]`);
+        const videoEl = card?.querySelector('.voice-participant__video');
+        stream = videoEl ? videoEl.srcObject : null;
+    }
+
+    if (currentFocusedUid === uid || !stream || stream.getVideoTracks().length === 0) {
+        unfocusParticipant();
+        return;
+    }
+
+    currentFocusedUid = uid;
+    const focusArea = document.getElementById('voice-focus-area');
+    const focusVideo = document.getElementById('voice-focus-video');
+    const participantsGrid = document.getElementById('voice-participants');
+    
+    focusArea.classList.add('active');
+    participantsGrid.classList.add('focused-row');
+    
+    focusVideo.srcObject = stream;
+    focusVideo.play().catch(e => console.warn('Autoplay blocked:', e));
+    document.getElementById('voice-focus-name').textContent = name || 'Thành viên';
+}
+
+function unfocusParticipant() {
+    currentFocusedUid = null;
+    document.getElementById('voice-focus-area').classList.remove('active');
+    document.getElementById('voice-focus-video').srcObject = null;
+    document.getElementById('voice-participants').classList.remove('focused-row');
+}
+
 
 async function startVideoCall() {
     if (!requireVoiceChannel()) return;
@@ -2184,6 +2242,13 @@ function showVoiceMedia(stream, status) {
                 video.classList.remove('hidden');
             }
             card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
+        } else if (card && stream.getVideoTracks().length === 0) {
+            const video = card.querySelector('.voice-participant__video');
+            if (video) { video.srcObject = null; video.classList.add('hidden'); }
+            card.querySelector('.voice-participant__avatar')?.classList.remove('hidden');
+            if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === currentUser.uid) {
+                unfocusParticipant();
+            }
         }
         document.getElementById('voice-local-video').classList.add('hidden');
     } else {
