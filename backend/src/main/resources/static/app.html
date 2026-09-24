@@ -1841,23 +1841,35 @@ function remoteTile(channelId, uid, stream) {
     const videoTracks = stream.getVideoTracks();
     const video = card.querySelector('.voice-participant__video');
     
-    // Track 1
-    if (video && videoTracks.length > 0) {
-        video.srcObject = new MediaStream([stream.getAudioTracks()[0], videoTracks[0]].filter(Boolean));
-        video.classList.remove('hidden'); video.play().catch(e => console.warn(e));
-        video.play().catch(e => console.warn('[WebRTC] Autoplay blocked:', e));
+    let screenTrack = null;
+    let cameraTrack = null;
+    if (videoTracks.length > 0) {
+        screenTrack = videoTracks.find(t => t.getSettings().displaySurface || /screen|window|monitor/i.test(t.label));
+        cameraTrack = videoTracks.find(t => t !== screenTrack);
+        if (!screenTrack && videoTracks.length > 1) screenTrack = videoTracks[1];
+        if (!cameraTrack && videoTracks.length === 1 && !screenTrack) cameraTrack = videoTracks[0];
+        if (!cameraTrack && videoTracks.length > 1) cameraTrack = videoTracks[0];
     }
-    card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
+    
+    // Camera Track
+    if (video && cameraTrack) {
+        video.srcObject = new MediaStream([stream.getAudioTracks()[0], cameraTrack].filter(Boolean));
+        video.classList.remove('hidden'); video.play().catch(e => console.warn(e));
+        card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
+    } else if (video && !cameraTrack) {
+        video.srcObject = null; video.classList.add('hidden');
+        card.querySelector('.voice-participant__avatar')?.classList.remove('hidden');
+    }
 
-    // Track 2
-    let screenCard = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}_screen"]`);
-    if (videoTracks.length > 1) {
+    // Screen Track
+    let screenCard = document.getElementById('voice-participants')?.querySelector([data-uid="${uid}_screen"]);
+    if (screenTrack) {
         if (!screenCard) {
             screenCard = document.createElement('div');
             screenCard.className = 'voice-participant';
             screenCard.dataset.uid = uid + '_screen';
             const nameEl = card.querySelector('.voice-participant__name');
-            const displayName = nameEl ? nameEl.textContent : 'Thành viên';
+            const displayName = nameEl ? nameEl.textContent : 'Remote';
             screenCard.onclick = () => focusParticipant(uid + '_screen', displayName + ' (Màn hình)');
             
             const scVideo = document.createElement('video');
@@ -1874,13 +1886,16 @@ function remoteTile(channelId, uid, stream) {
             document.getElementById('voice-participants').appendChild(screenCard);
         }
         const scVideoEl = screenCard.querySelector('video');
-        scVideoEl.srcObject = new MediaStream([videoTracks[1]]);
-        scVideoEl.play().catch(e => {});
+        if (scVideoEl.srcObject?.getVideoTracks()[0] !== screenTrack) {
+            scVideoEl.srcObject = new MediaStream([screenTrack]);
+            scVideoEl.play().catch(e => {});
+        }
     } else if (screenCard) {
         screenCard.remove();
         if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === uid + '_screen') {
             unfocusParticipant();
         }
+    }
     }
 
     document.getElementById('voice-room-status').textContent = 'Đang xem camera';
@@ -1934,17 +1949,7 @@ function subscribeVoiceChannel(channelId) {
     voiceSignalSubscriptions[channelId] = stompClient.subscribe('/topic/voice-signal/' + channelId, frame => {
         handleVoiceSignal(channelId, JSON.parse(frame.body));
     });
-    voiceFrameSubscriptions[channelId] = stompClient.subscribe('/topic/voice-frame/' + channelId, frame => {
-        const data = JSON.parse(frame.body);
-        if (data.fromUid === currentUser.uid || activeVoiceChannel?.id !== channelId) return;
-        const screen = document.getElementById('voice-remote-screen');
-        screen.src = data.image;
-        screen.classList.remove('hidden');
-        document.getElementById('voice-remote-video').classList.add('hidden');
-        document.getElementById('voice-participants').classList.add('hidden');
-        document.getElementById('voice-room-empty').classList.add('hidden');
-        document.getElementById('voice-room-status').textContent = 'Đang xem chia sẻ màn hình';
-    });
+
 }
 
 async function loadVoiceParticipants(channelId) {
@@ -2110,7 +2115,7 @@ async function startScreenShare() {
         if (localScreenTrack) {
             localScreenTrack.stop();
             localScreenTrack = null;
-            stopScreenFrameRelay();
+            // removed stopScreenFrameRelay
             await updateOutgoingMedia('Đã tắt chia sẻ');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-display"></i>';
         } else {
@@ -2118,12 +2123,12 @@ async function startScreenShare() {
             localScreenTrack = stream.getVideoTracks()[0];
             localScreenTrack.onended = () => {
                 localScreenTrack = null;
-                stopScreenFrameRelay();
+                // removed stopScreenFrameRelay
                 updateOutgoingMedia('Đã tắt chia sẻ');
                 if (btn) btn.innerHTML = '<i class="fa-solid fa-display"></i>';
             };
             await updateOutgoingMedia('Đang chia sẻ màn hình');
-            startScreenFrameRelay(stream);
+            // removed startScreenFrameRelay
             if (btn) btn.innerHTML = '<i class="fa-solid fa-desktop text-[#ed4245]"></i>';
         }
     } catch (e) {
@@ -2341,7 +2346,7 @@ function stopVoiceBroadcast(notify) {
     if (localScreenTrack) { localScreenTrack.stop(); localScreenTrack = null; }
     const camBtn = document.getElementById('voice-camera-button'); if (camBtn) camBtn.innerHTML = '<i class="fa-solid fa-video-slash text-[#ed4245]"></i>';
     const shareBtn = document.getElementById('voice-share-button'); if (shareBtn) shareBtn.innerHTML = '<i class="fa-solid fa-display"></i>';
-    stopScreenFrameRelay();
+    // removed stopScreenFrameRelay
     voiceOutgoingStream = null;
     
     // Dọn dẹp monitor âm thanh của mình
@@ -2466,6 +2471,8 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
+
 
 
 
