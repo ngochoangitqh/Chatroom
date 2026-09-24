@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -2486,9 +2486,11 @@ document.getElementById('global-file-input').addEventListener('change', async (e
         const data = await res.json();
         const inputId = fileUploadType === 'channel' ? 'message-input' : 'dm-message-input';
         const inputEl = document.getElementById(inputId);
-        const tag = data.type === 'image' ? [IMAGE]() : [FILE=][/FILE];
-        inputEl.value = (inputEl.value + ' ' + tag).trim();
-        inputEl.focus();
+        const tag = data.type === 'image' ? ('[IMAGE](' + data.url + ')') : ('[FILE=' + data.url + ']' + data.name + '[/FILE]');
+        if (inputEl) {
+            inputEl.value = (inputEl.value + ' ' + tag).trim();
+            inputEl.focus();
+        }
         showToast('Tải lên thành công!', 'success');
     } catch(err) {
         showToast('Lỗi tải lên file', 'error');
