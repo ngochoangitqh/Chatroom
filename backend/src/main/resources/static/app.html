@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -1659,7 +1659,7 @@ function renderVoiceParticipants(participants) {
     // Xoá những thẻ không còn trong danh sách
     [...container.children].forEach(card => {
         if (card.classList.contains('voice-room__activity')) return;
-        if (!currentUids.has(card.dataset.uid)) {
+        if (!currentUids.has(card.dataset.uid) && !card.dataset.uid.endsWith('_screen')) {
             card.remove();
         }
     });
@@ -1835,28 +1835,55 @@ function remoteTile(channelId, uid, stream) {
         return;
     }
 
-    // Nếu có video -> Hiển thị trên grid
     const oldAudio = document.getElementById('audio-remote-' + uid);
     if (oldAudio) oldAudio.remove();
 
+    const videoTracks = stream.getVideoTracks();
     const video = card.querySelector('.voice-participant__video');
-    if (video) {
-        video.srcObject = stream;
+    
+    // Track 1
+    if (video && videoTracks.length > 0) {
+        video.srcObject = new MediaStream([stream.getAudioTracks()[0], videoTracks[0]].filter(Boolean));
         video.classList.remove('hidden');
-        // Ép trình duyệt play video để tránh lỗi đen màn hình
         video.play().catch(e => console.warn('[WebRTC] Autoplay blocked:', e));
     }
     card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
-    document.getElementById('voice-room-status').textContent = 'Đang xem camera';
 
-    // Xóa debug cũ nếu có
-    let debug = card.querySelector('.webrtc-debug');
-    if (!debug) {
-        debug = document.createElement('div');
-        debug.className = 'webrtc-debug';
-        debug.style = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.7);color:lime;font-size:11px;padding:2px 5px;z-index:999;';
-        card.appendChild(debug);
+    // Track 2
+    let screenCard = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}_screen"]`);
+    if (videoTracks.length > 1) {
+        if (!screenCard) {
+            screenCard = document.createElement('div');
+            screenCard.className = 'voice-participant';
+            screenCard.dataset.uid = uid + '_screen';
+            const nameEl = card.querySelector('.voice-participant__name');
+            const displayName = nameEl ? nameEl.textContent : 'Thành viên';
+            screenCard.onclick = () => focusParticipant(uid + '_screen', displayName + ' (Màn hình)');
+            
+            const scVideo = document.createElement('video');
+            scVideo.className = 'voice-participant__video';
+            scVideo.autoplay = true;
+            scVideo.playsInline = true;
+            screenCard.appendChild(scVideo);
+            
+            const scName = document.createElement('span');
+            scName.className = 'voice-participant__name';
+            scName.textContent = displayName + ' (Màn hình)';
+            screenCard.appendChild(scName);
+            
+            document.getElementById('voice-participants').appendChild(screenCard);
+        }
+        const scVideoEl = screenCard.querySelector('video');
+        scVideoEl.srcObject = new MediaStream([videoTracks[1]]);
+        scVideoEl.play().catch(e => {});
+    } else if (screenCard) {
+        screenCard.remove();
+        if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === uid + '_screen') {
+            unfocusParticipant();
+        }
     }
+
+    document.getElementById('voice-room-status').textContent = 'Đang xem camera';
     const peer = voicePeers[activeVoiceChannel?.id]?.[uid];
     if (peer) {
         debug.textContent = 'ICE: ' + peer.iceConnectionState;
@@ -2023,98 +2050,84 @@ function unfocusParticipant() {
 }
 
 
+let localCameraTrack = null;
+let localScreenTrack = null;
+
+async function updateOutgoingMedia(statusMsg) {
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const audioTrack = micStream.getAudioTracks()[0];
+    audioTrack.enabled = !isMuted;
+    
+    const tracks = [audioTrack];
+    if (localCameraTrack) tracks.push(localCameraTrack);
+    if (localScreenTrack) tracks.push(localScreenTrack);
+    
+    const combined = new MediaStream(tracks);
+    
+    // UI Local
+    const localVideo = document.getElementById('voice-local-video');
+    if (localCameraTrack || localScreenTrack) {
+        localVideo.srcObject = new MediaStream([localCameraTrack || localScreenTrack]);
+        localVideo.classList.remove('hidden');
+    } else {
+        localVideo.srcObject = null;
+        localVideo.classList.add('hidden');
+    }
+    
+    await publishVoiceStream(combined, statusMsg);
+}
+
 async function startVideoCall() {
     if (!requireVoiceChannel()) return;
-    
-    const isCameraOn = voiceOutgoingStream && voiceOutgoingStream.getVideoTracks().length > 0;
     const btn = document.getElementById('voice-camera-button');
-    
     try {
-        if (isCameraOn) {
-            // TẮT CAMERA
-            // Xin lại luồng chỉ có mic
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-            
-            const localVideo = document.getElementById('voice-local-video');
-            localVideo.srcObject = null;
-            localVideo.classList.add('hidden');
-            
-            await publishVoiceStream(micStream, 'Đã kết nối');
+        if (localCameraTrack) {
+            localCameraTrack.stop();
+            localCameraTrack = null;
+            await updateOutgoingMedia('Đã tắt camera');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-video-slash text-[#ed4245]"></i>';
-            showToast('Đã tắt camera.', 'info');
         } else {
-            // BẬT CAMERA
             const videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            const videoTrack = videoStream.getVideoTracks()[0];
-            
-            // Lấy lại mic track an toàn
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            const combined = new MediaStream([...micStream.getAudioTracks(), videoTrack]);
-            combined.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-            
-            const localVideo = document.getElementById('voice-local-video');
-            localVideo.srcObject = combined;
-            localVideo.classList.remove('hidden');
-            
-            await publishVoiceStream(combined, 'Camera đang bật');
+            localCameraTrack = videoStream.getVideoTracks()[0];
+            localCameraTrack.onended = () => {
+                localCameraTrack = null;
+                updateOutgoingMedia('Đã tắt camera');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-video-slash text-[#ed4245]"></i>';
+            };
+            await updateOutgoingMedia('Camera đang bật');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-video"></i>';
         }
     } catch (e) {
-        console.error('startVideoCall:', e);
-        showToast('Không thể truy cập thiết bị. Hãy cấp quyền camera/mic.', 'error');
+        console.error(e);
+        showToast('Lỗi truy cập camera', 'error');
     }
 }
 async function startScreenShare() {
     if (!requireVoiceChannel()) return;
-    
-    // Kiểm tra nếu đang share màn hình thì tắt (dựa trên class của stream hoặc nút)
-    const isSharing = screenFrameTimer !== null; // Đang có timer gửi frame tức là đang share
     const btn = document.getElementById('voice-share-button');
 
     try {
-        if (isSharing) {
-            // TẮT CHIA SẺ
+        if (localScreenTrack) {
+            localScreenTrack.stop();
+            localScreenTrack = null;
             stopScreenFrameRelay();
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-            
-            await publishVoiceStream(micStream, 'Đã kết nối');
+            await updateOutgoingMedia('Đã tắt chia sẻ');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-display"></i>';
-            showToast('Đã dừng chia sẻ màn hình.', 'info');
         } else {
-            // BẬT CHIA SẺ
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-            
-            // Lấy lại mic để mix vào cùng stream (nếu hệ thống không share audio)
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            micStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-            
-            // Gộp audio của mic và (nếu có) audio của screen share
-            const allAudio = [...stream.getAudioTracks(), ...micStream.getAudioTracks()];
-            const combined = new MediaStream([...stream.getVideoTracks(), ...allAudio]);
-            
-            const localVideo = document.getElementById('voice-local-video');
-            localVideo.srcObject = combined;
-            // Không gỡ hidden vì showVoiceMedia sẽ hiển thị trên grid
-
-            await publishVoiceStream(combined, 'Đang chia sẻ màn hình');
-            startScreenFrameRelay(combined);
-            
-            if (btn) btn.innerHTML = '<i class="fa-solid fa-desktop text-[#ed4245]"></i>';
-            
-            // Xử lý khi người dùng nhấn "Stop Sharing" từ thanh thông báo của trình duyệt
-            combined.getVideoTracks()[0]?.addEventListener('ended', async () => {
+            localScreenTrack = stream.getVideoTracks()[0];
+            localScreenTrack.onended = () => {
+                localScreenTrack = null;
                 stopScreenFrameRelay();
-                const newMic = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                newMic.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-                await publishVoiceStream(newMic, 'Đã kết nối');
+                updateOutgoingMedia('Đã tắt chia sẻ');
                 if (btn) btn.innerHTML = '<i class="fa-solid fa-display"></i>';
-                showToast('Đã dừng chia sẻ màn hình.', 'info');
-            }, { once: true });
+            };
+            await updateOutgoingMedia('Đang chia sẻ màn hình');
+            startScreenFrameRelay(stream);
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-desktop text-[#ed4245]"></i>';
         }
-    } catch { 
-        showToast('Đã huỷ chia sẻ màn hình.', 'error'); 
+    } catch (e) {
+        showToast('Đã huỷ chia sẻ màn hình.', 'error');
     }
 }
 function startScreenFrameRelay(stream) {
@@ -2235,14 +2248,17 @@ async function handleVoiceSignal(channelId, signal) {
 function showVoiceMedia(stream, status) {
     if (activeVoiceChannel) {
         const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${currentUser.uid}"]`);
-        if (card && stream.getVideoTracks().length > 0) {
+        const videoTracks = stream.getVideoTracks();
+        
+        // Track 1
+        if (card && videoTracks.length > 0) {
             const video = card.querySelector('.voice-participant__video');
             if (video) {
-                video.srcObject = stream;
+                video.srcObject = new MediaStream([stream.getAudioTracks()[0], videoTracks[0]].filter(Boolean));
                 video.classList.remove('hidden');
             }
             card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
-        } else if (card && stream.getVideoTracks().length === 0) {
+        } else if (card && videoTracks.length === 0) {
             const video = card.querySelector('.voice-participant__video');
             if (video) { video.srcObject = null; video.classList.add('hidden'); }
             card.querySelector('.voice-participant__avatar')?.classList.remove('hidden');
@@ -2250,6 +2266,42 @@ function showVoiceMedia(stream, status) {
                 unfocusParticipant();
             }
         }
+        
+        // Track 2
+        let screenCard = document.getElementById('voice-participants')?.querySelector(`[data-uid="${currentUser.uid}_screen"]`);
+        if (videoTracks.length > 1) {
+            if (!screenCard) {
+                screenCard = document.createElement('div');
+                screenCard.className = 'voice-participant';
+                screenCard.dataset.uid = currentUser.uid + '_screen';
+                const nameEl = card ? card.querySelector('.voice-participant__name') : null;
+                const displayName = nameEl ? nameEl.textContent : 'Bạn';
+                screenCard.onclick = () => focusParticipant(currentUser.uid + '_screen', displayName + ' (Màn hình)');
+                
+                const scVideo = document.createElement('video');
+                scVideo.className = 'voice-participant__video';
+                scVideo.autoplay = true;
+                scVideo.playsInline = true;
+                scVideo.muted = true;
+                screenCard.appendChild(scVideo);
+                
+                const scName = document.createElement('span');
+                scName.className = 'voice-participant__name';
+                scName.textContent = displayName + ' (Màn hình)';
+                screenCard.appendChild(scName);
+                
+                document.getElementById('voice-participants').appendChild(screenCard);
+            }
+            const scVideoEl = screenCard.querySelector('video');
+            scVideoEl.srcObject = new MediaStream([videoTracks[1]]);
+            scVideoEl.play().catch(e => {});
+        } else if (screenCard) {
+            screenCard.remove();
+            if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === currentUser.uid + '_screen') {
+                unfocusParticipant();
+            }
+        }
+
         document.getElementById('voice-local-video').classList.add('hidden');
     } else {
         const video = document.getElementById('voice-local-video');
@@ -2398,4 +2450,11 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
 
