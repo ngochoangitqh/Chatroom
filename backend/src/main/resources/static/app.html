@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -1700,7 +1700,7 @@ function renderVoiceParticipants(participants) {
             // Nếu là chính mình và đang bật cam thì restore lại stream
             if (participant.uid === currentUser.uid && voiceOutgoingStream && voiceOutgoingStream.getVideoTracks().length > 0) {
                 video.srcObject = voiceOutgoingStream;
-                video.classList.remove('hidden');
+                video.classList.remove('hidden'); video.play().catch(e => console.warn(e));
                 avatar.classList.add('hidden');
             }
         }
@@ -1844,7 +1844,7 @@ function remoteTile(channelId, uid, stream) {
     // Track 1
     if (video && videoTracks.length > 0) {
         video.srcObject = new MediaStream([stream.getAudioTracks()[0], videoTracks[0]].filter(Boolean));
-        video.classList.remove('hidden');
+        video.classList.remove('hidden'); video.play().catch(e => console.warn(e));
         video.play().catch(e => console.warn('[WebRTC] Autoplay blocked:', e));
     }
     card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
@@ -2247,7 +2247,7 @@ async function handleVoiceSignal(channelId, signal) {
 }
 function showVoiceMedia(stream, status) {
     if (activeVoiceChannel) {
-        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="$currentUser.uid"]`);
+        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${currentUser.uid}"]`);
         const videoTracks = stream.getVideoTracks();
         
         let screenTrack = null;
@@ -2265,7 +2265,7 @@ function showVoiceMedia(stream, status) {
             const avatar = card.querySelector('.voice-participant__avatar');
             if (video) {
                 video.srcObject = new MediaStream([stream.getAudioTracks()[0], cameraTrack].filter(Boolean));
-                video.classList.remove('hidden');
+                video.classList.remove('hidden'); video.play().catch(e => console.warn(e));
             }
             if (avatar) avatar.classList.add('hidden');
         } else if (card && !cameraTrack) {
@@ -2319,7 +2319,7 @@ function showVoiceMedia(stream, status) {
         const video = document.getElementById('voice-local-video');
         video.srcObject = stream;
         video.classList.add('voice-room__video--local');
-        video.classList.remove('hidden');
+        video.classList.remove('hidden'); video.play().catch(e => console.warn(e));
     }
     document.getElementById('voice-room-status').textContent = status;
 }
@@ -2462,6 +2462,8 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
+
 
 
 
