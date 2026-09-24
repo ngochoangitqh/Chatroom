@@ -1825,6 +1825,8 @@ function remoteTile(channelId, uid, stream) {
     if (video) {
         video.srcObject = stream;
         video.classList.remove('hidden');
+        // Ép trình duyệt play video để tránh lỗi đen màn hình
+        video.play().catch(e => console.warn('[WebRTC] Autoplay blocked:', e));
     }
     card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
     document.getElementById('voice-room-status').textContent = 'Đang xem camera';
