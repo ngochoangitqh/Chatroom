@@ -461,7 +461,7 @@
                 </div>
                 <!-- Input box -->
                 <div class="bg-[#18181f] rounded-lg flex items-center px-3 gap-2 border border-[#ffffff0a]" id="input-box">
-                    <button class="text-[#b5bac1] hover:text-white transition-colors py-3 flex-shrink-0" title="Đính kèm">
+                    <button class="text-[#b5bac1] hover:text-white transition-colors py-3 flex-shrink-0" title="Đính kèm" onclick="triggerFileUpload('channel')">
                         <i class="fa-solid fa-circle-plus text-xl"></i>
                     </button>
                     <input type="text" id="message-input"
@@ -491,7 +491,7 @@
                 <button onclick="openAddFriendModal()" class="mt-6 bg-[#7c5cfc] hover:bg-[#6a4ae0] text-white font-semibold px-5 py-2 rounded-lg"><i class="fa-solid fa-user-plus mr-2"></i>Thêm bạn</button>
             </div>
             <div id="dm-messages-container" class="hidden flex-1 overflow-y-auto px-4 py-4"></div>
-            <div id="dm-input-area" class="hidden px-4 pb-4 pt-1 flex-shrink-0"><div class="bg-[#18181f] rounded-lg flex items-center px-3 gap-2 border border-[#ffffff0a]"><input type="text" id="dm-message-input" class="flex-1 bg-transparent text-[#e8e8f0] py-3 outline-none text-[14px] placeholder:text-[#e8e8f030]" placeholder="Nhắn tin..." autocomplete="off" /><button onclick="sendDirectMessage()" class="text-[#7c5cfc] hover:text-white p-1.5" title="Gửi"><i class="fa-solid fa-paper-plane text-lg"></i></button></div></div>
+            <div id="dm-input-area" class="hidden px-4 pb-4 pt-1 flex-shrink-0"><div class="bg-[#18181f] rounded-lg flex items-center px-3 gap-2 border border-[#ffffff0a]"><button class="text-[#b5bac1] hover:text-white transition-colors p-1.5 flex-shrink-0" title="Đính kèm" onclick="triggerFileUpload('dm')"><i class="fa-solid fa-circle-plus text-xl"></i></button><input type="text" id="dm-message-input" class="flex-1 bg-transparent text-[#e8e8f0] py-3 outline-none text-[14px] placeholder:text-[#e8e8f030]" placeholder="Nhắn tin..." autocomplete="off" /><button onclick="sendDirectMessage()" class="text-[#7c5cfc] hover:text-white p-1.5" title="Gửi"><i class="fa-solid fa-paper-plane text-lg"></i></button></div></div>
         </div>
 
         <!-- Voice rooms are separate from text channels, following P2P Study Room architecture. -->
@@ -661,6 +661,8 @@ function renderMarkdown(t) {
     h = h.replace(/\*(.+?)\*/g,'<em>$1</em>');
     h = h.replace(/`(.+?)`/g,'<code class="bg-[#1e1f22] text-[#f38ba8] px-1 py-0.5 rounded text-[13px] font-mono">$1</code>');
     h = h.replace(/@(\w+)/g,'<span class="text-[#5865f2] font-semibold cursor-pointer hover:underline">@$1</span>');
+    h = h.replace(/\[IMAGE\]\((.*?)\)/g, '<br><img src="$1" style="max-width:300px; max-height:300px; border-radius:8px; margin-top:8px; cursor:pointer;" onclick="window.open(\'$1\',\'_blank\')" />');
+    h = h.replace(/\[FILE=(.*?)\](.*?)\[\/FILE\]/g, '<br><a href="$1" download class="text-[#5865f2] hover:underline bg-[#2b2d31] px-3 py-2 rounded-lg inline-flex items-center gap-2 mt-2 border border-[#ffffff1a]"><i class="fa-solid fa-file"></i> $2</a>');
     return h;
 }
 function getAvatarColor(name) {
@@ -2467,9 +2469,38 @@ document.addEventListener('click', (e) => {
     const header = document.getElementById('server-header');
     if (!header.contains(e.target) && !dd.contains(e.target)) dd.classList.add('hidden');
 });
+let fileUploadType = 'channel';
+function triggerFileUpload(type) {
+    fileUploadType = type;
+    document.getElementById('global-file-input').click();
+}
+document.getElementById('global-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showToast('Đang tải lên...', 'info');
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        const inputId = fileUploadType === 'channel' ? 'message-input' : 'dm-message-input';
+        const inputEl = document.getElementById(inputId);
+        const tag = data.type === 'image' ? [IMAGE]() : [FILE=][/FILE];
+        inputEl.value = (inputEl.value + ' ' + tag).trim();
+        inputEl.focus();
+        showToast('Tải lên thành công!', 'success');
+    } catch(err) {
+        showToast('Lỗi tải lên file', 'error');
+    }
+    e.target.value = '';
+});
 </script>
+<input type="file" id="global-file-input" class="hidden" accept="*/*">
 </body>
 </html>
+
+
 
 
 

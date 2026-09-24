@@ -497,7 +497,7 @@
             } catch (err) {
                 console.warn('Không thể tải hồ sơ Firestore:', err);
             }
-            localStorage.setItem('Study Room_user', JSON.stringify({
+            localStorage.setItem('studyroom_user', JSON.stringify({
                 uid: user.uid, email: user.email, username: profile.displayName || user.displayName || user.email.split('@')[0],
                 age: profile.age || '', phone: profile.phone || '', photoURL: user.photoURL || '', loggedInAt: new Date().toISOString()
             }));
@@ -630,4 +630,5 @@
     </script>
 </body>
 </html>
+
 
