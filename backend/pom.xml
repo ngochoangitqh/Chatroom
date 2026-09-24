@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.voicehub</groupId>
-    <artifactId>voicehub</artifactId>
+    <groupId>com.studyroom</groupId>
+    <artifactId>studyroom</artifactId>
     <version>1.0.0</version>
-    <name>VoiceHub</name>
-    <description>Discord Clone - Chat, Voice, Video, Screen Share</description>
+    <name>StudyRoom</name>
+    <description>Study Room - Phòng học nhóm trực tuyến sử dụng mô hình P2P và giao thức TCP</description>
 
     <properties>
         <java.version>21</java.version>

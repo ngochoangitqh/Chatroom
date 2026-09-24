@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SquadCast — chat, call & study together</title>
+    <title>Study Room — Phòng học nhóm trực tuyến P2P</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
@@ -256,7 +256,7 @@
 <!-- Add a friend by the email used for Firebase login. -->
 <div id="modal-add-friend" class="hidden fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
     <div class="w-full max-w-md mx-4 bg-[#313338] rounded-xl shadow-2xl border border-[#1f2023] pointer-events-auto modal-enter">
-        <div class="p-6 border-b border-[#1f2023]"><h2 class="text-xl font-bold text-white">Thêm bạn bè</h2><p class="text-sm text-[#b5bac1] mt-1">Nhập email mà bạn của bạn dùng để đăng nhập SquadCast.</p></div>
+        <div class="p-6 border-b border-[#1f2023]"><h2 class="text-xl font-bold text-white">Thêm bạn bè</h2><p class="text-sm text-[#b5bac1] mt-1">Nhập email mà bạn của bạn dùng để đăng nhập Study Room.</p></div>
         <div class="p-6"><input id="friend-email-input" type="email" class="w-full bg-[#1e1f22] text-white border border-[#3f4147] rounded-lg px-3 py-3 outline-none focus:border-[#5865f2]" placeholder="ban@example.com" autocomplete="email" /><p id="friend-error" class="hidden text-xs text-[#ed4245] mt-2"></p></div>
         <div class="px-6 pb-6 flex justify-end gap-3"><button onclick="closeAllModals()" class="px-4 py-2 text-sm font-medium text-[#b5bac1] hover:text-white">Huỷ</button><button onclick="sendFriendRequest()" class="px-4 py-2 text-sm font-bold bg-[#5865f2] hover:bg-[#4752c4] text-white rounded-lg">Gửi lời mời</button></div>
     </div>
@@ -279,7 +279,7 @@
      MAIN LAYOUT
      ====================================================== -->
 <header class="squad-topbar">
-    <div class="squad-brand"><i class="fa-solid fa-s"></i>SquadCast</div>
+    <div class="squad-brand"><i class="fa-solid fa-book-open"></i>Study Room</div>
     <nav class="squad-nav" aria-label="Không gian làm việc">
         <button aria-current="page" onclick="setWorkspace('live', this)"><i class="fa-solid fa-tower-broadcast mr-2"></i>livestream</button>
         <button onclick="setWorkspace('chat', this)"><i class="fa-regular fa-comments mr-2"></i>nhóm chat</button>
@@ -425,7 +425,7 @@
             <div class="w-24 h-24 bg-[#18181f] rounded-3xl flex items-center justify-center mb-6">
                 <i class="fa-solid fa-comments text-[#5865f2] text-4xl"></i>
             </div>
-            <h2 class="text-2xl font-extrabold text-white mb-2">Chào mừng đến với DiscordUltra!</h2>
+            <h2 class="text-2xl font-extrabold text-white mb-2">Chào mừng đến với Study Room!</h2>
             <p class="text-[#949ba4] max-w-sm">Tạo server của riêng bạn hoặc tham gia server của bạn bè để bắt đầu chat realtime.</p>
             <div class="flex gap-3 mt-6">
                 <button onclick="openModal('modal-create-server')" class="bg-[#7c5cfc] hover:bg-[#6a4ae0] text-white font-bold px-5 py-2 rounded-lg transition-colors">
@@ -494,7 +494,7 @@
             <div id="dm-input-area" class="hidden px-4 pb-4 pt-1 flex-shrink-0"><div class="bg-[#18181f] rounded-lg flex items-center px-3 gap-2 border border-[#ffffff0a]"><input type="text" id="dm-message-input" class="flex-1 bg-transparent text-[#e8e8f0] py-3 outline-none text-[14px] placeholder:text-[#e8e8f030]" placeholder="Nhắn tin..." autocomplete="off" /><button onclick="sendDirectMessage()" class="text-[#7c5cfc] hover:text-white p-1.5" title="Gửi"><i class="fa-solid fa-paper-plane text-lg"></i></button></div></div>
         </div>
 
-        <!-- Voice rooms are separate from text channels, like Discord. -->
+        <!-- Voice rooms are separate from text channels, following P2P Study Room architecture. -->
         <section id="voice-room-view" class="hidden voice-room" aria-labelledby="voice-room-title">
             <div class="voice-room__head">
                 <div>
@@ -676,7 +676,7 @@ function displayName() {
 //  INIT
 // ═══════════════════════════════════════════════════════
 window.onload = async function() {
-    const ud = localStorage.getItem('voicehub_user');
+    const ud = localStorage.getItem('studyroom_user');
     if (!ud) { window.location.href = 'login.html'; return; }
     currentUser = JSON.parse(ud);
     const dn = displayName();
@@ -2426,7 +2426,7 @@ function toggleDeafen() {
 }
 function logout() {
     if (stompClient) stompClient.disconnect();
-    localStorage.removeItem('voicehub_user');
+    localStorage.removeItem('studyroom_user');
     window.location.href = 'login.html';
 }
 
@@ -2462,6 +2462,7 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
 
 
