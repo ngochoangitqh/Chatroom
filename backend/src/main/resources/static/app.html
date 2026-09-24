@@ -2192,7 +2192,7 @@ async function offerVoiceStream(channelId, targetUid) {
     sendVoiceSignal(channelId, {type:'offer', targetUid, description:offer});
 }
 async function publishVoiceStream(stream, status) {
-    stopVoiceBroadcast(false);
+    if (voiceOutgoingStream) { voiceOutgoingStream.getTracks().forEach(track => { if (!stream.getTracks().includes(track)) track.stop(); }); }
     voiceOutgoingStream = stream;
     monitorAudioStream(currentUser.uid, stream);
     showVoiceMedia(stream, status);
@@ -2337,6 +2337,10 @@ function endCall() {
 function stopVoiceBroadcast(notify) {
     const channelId = activeVoiceChannel?.id;
     if (voiceOutgoingStream) voiceOutgoingStream.getTracks().forEach(track => track.stop());
+    if (localCameraTrack) { localCameraTrack.stop(); localCameraTrack = null; }
+    if (localScreenTrack) { localScreenTrack.stop(); localScreenTrack = null; }
+    const camBtn = document.getElementById('voice-camera-button'); if (camBtn) camBtn.innerHTML = '<i class="fa-solid fa-video-slash text-[#ed4245]"></i>';
+    const shareBtn = document.getElementById('voice-share-button'); if (shareBtn) shareBtn.innerHTML = '<i class="fa-solid fa-display"></i>';
     stopScreenFrameRelay();
     voiceOutgoingStream = null;
     
@@ -2462,6 +2466,10 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
+
+
+
 
 
 
