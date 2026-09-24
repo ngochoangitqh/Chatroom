@@ -1830,6 +1830,22 @@ function remoteTile(channelId, uid, stream) {
     }
     card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
     document.getElementById('voice-room-status').textContent = 'Đang xem camera';
+
+    // Xóa debug cũ nếu có
+    let debug = card.querySelector('.webrtc-debug');
+    if (!debug) {
+        debug = document.createElement('div');
+        debug.className = 'webrtc-debug';
+        debug.style = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.7);color:lime;font-size:11px;padding:2px 5px;z-index:999;';
+        card.appendChild(debug);
+    }
+    const peer = voicePeers[activeVoiceChannel?.id]?.[uid];
+    if (peer) {
+        debug.textContent = 'ICE: ' + peer.iceConnectionState;
+        peer.addEventListener('iceconnectionstatechange', () => {
+            if (debug) debug.textContent = 'ICE: ' + peer.iceConnectionState;
+        });
+    }
 }
 
 function removeRemoteTile(uid) {
