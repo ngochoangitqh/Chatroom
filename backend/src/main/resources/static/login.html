@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoiceHub - Đăng nhập</title>
+    <title>Study Room - Đăng nhập</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -497,7 +497,7 @@
             } catch (err) {
                 console.warn('Không thể tải hồ sơ Firestore:', err);
             }
-            localStorage.setItem('voicehub_user', JSON.stringify({
+            localStorage.setItem('Study Room_user', JSON.stringify({
                 uid: user.uid, email: user.email, username: profile.displayName || user.displayName || user.email.split('@')[0],
                 age: profile.age || '', phone: profile.phone || '', photoURL: user.photoURL || '', loggedInAt: new Date().toISOString()
             }));
@@ -630,3 +630,4 @@
     </script>
 </body>
 </html>
+
