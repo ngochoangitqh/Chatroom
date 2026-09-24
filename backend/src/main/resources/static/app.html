@@ -2247,29 +2247,39 @@ async function handleVoiceSignal(channelId, signal) {
 }
 function showVoiceMedia(stream, status) {
     if (activeVoiceChannel) {
-        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="${currentUser.uid}"]`);
+        const card = document.getElementById('voice-participants')?.querySelector(`[data-uid="$currentUser.uid"]`);
         const videoTracks = stream.getVideoTracks();
         
-        // Track 1
-        if (card && videoTracks.length > 0) {
+        let screenTrack = null;
+        let cameraTrack = null;
+        if (videoTracks.length > 0) {
+            screenTrack = videoTracks.find(t => t.getSettings().displaySurface || /screen|window|monitor/i.test(t.label));
+            cameraTrack = videoTracks.find(t => t !== screenTrack);
+            if (!screenTrack && videoTracks.length > 1) screenTrack = videoTracks[1];
+            if (!cameraTrack && videoTracks.length === 1 && !screenTrack) cameraTrack = videoTracks[0];
+            if (!cameraTrack && videoTracks.length > 1) cameraTrack = videoTracks[0];
+        }
+        
+        if (card && cameraTrack) {
             const video = card.querySelector('.voice-participant__video');
+            const avatar = card.querySelector('.voice-participant__avatar');
             if (video) {
-                video.srcObject = new MediaStream([stream.getAudioTracks()[0], videoTracks[0]].filter(Boolean));
+                video.srcObject = new MediaStream([stream.getAudioTracks()[0], cameraTrack].filter(Boolean));
                 video.classList.remove('hidden');
             }
-            card.querySelector('.voice-participant__avatar')?.classList.add('hidden');
-        } else if (card && videoTracks.length === 0) {
+            if (avatar) avatar.classList.add('hidden');
+        } else if (card && !cameraTrack) {
             const video = card.querySelector('.voice-participant__video');
+            const avatar = card.querySelector('.voice-participant__avatar');
             if (video) { video.srcObject = null; video.classList.add('hidden'); }
-            card.querySelector('.voice-participant__avatar')?.classList.remove('hidden');
+            if (avatar) avatar.classList.remove('hidden');
             if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === currentUser.uid) {
                 unfocusParticipant();
             }
         }
         
-        // Track 2
         let screenCard = document.getElementById('voice-participants')?.querySelector(`[data-uid="${currentUser.uid}_screen"]`);
-        if (videoTracks.length > 1) {
+        if (screenTrack) {
             if (!screenCard) {
                 screenCard = document.createElement('div');
                 screenCard.className = 'voice-participant';
@@ -2293,8 +2303,10 @@ function showVoiceMedia(stream, status) {
                 document.getElementById('voice-participants').appendChild(screenCard);
             }
             const scVideoEl = screenCard.querySelector('video');
-            scVideoEl.srcObject = new MediaStream([videoTracks[1]]);
-            scVideoEl.play().catch(e => {});
+            if (scVideoEl.srcObject?.getVideoTracks()[0] !== screenTrack) {
+                scVideoEl.srcObject = new MediaStream([screenTrack]);
+                scVideoEl.play().catch(e => {});
+            }
         } else if (screenCard) {
             screenCard.remove();
             if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === currentUser.uid + '_screen') {
@@ -2450,6 +2462,8 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
+
 
 
 
