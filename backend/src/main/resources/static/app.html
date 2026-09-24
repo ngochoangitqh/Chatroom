@@ -1862,7 +1862,7 @@ function remoteTile(channelId, uid, stream) {
     }
 
     // Screen Track
-    let screenCard = document.getElementById('voice-participants')?.querySelector([data-uid="${uid}_screen"]);
+    let screenCard = document.getElementById('voice-participants')?.querySelector(`[data-uid="${uid}_screen"]`);
     if (screenTrack) {
         if (!screenCard) {
             screenCard = document.createElement('div');
@@ -1895,7 +1895,6 @@ function remoteTile(channelId, uid, stream) {
         if (typeof currentFocusedUid !== 'undefined' && currentFocusedUid === uid + '_screen') {
             unfocusParticipant();
         }
-    }
     }
 
     document.getElementById('voice-room-status').textContent = 'Đang xem camera';
@@ -2471,6 +2470,9 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
+
+
 
 
 
